@@ -1,0 +1,40 @@
+.botones-container {
+  display: flex;
+  gap: 1rem;
+  justify-content: left;
+  margin-top: 2rem;
+}
+
+.boton-admin {
+  background-color: #3f51b5;
+  border: none;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.boton-admin:hover {
+  background-color: #303f9f;
+  box-shadow: 0 4px 12px rgba(48, 63, 159, 0.4);
+}
+
+.boton-admin:focus {
+  outline: none;
+  box-shadow: 0 4px 12px rgba(48, 63, 159, 0.4);
+}
+
+.boton-delivery {
+  background-color: #009688;
+  border: none;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.boton-delivery:hover {
+  background-color: #00796b;
+  box-shadow: 0 4px 12px rgba(0, 121, 107, 0.4);
+}
+
+.boton-delivery:focus {
+  outline: none;
+  box-shadow: 0 4px 12px rgba(0, 121, 107, 0.4);
+}
