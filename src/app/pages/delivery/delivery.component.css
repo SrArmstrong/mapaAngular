@@ -1,8 +1,51 @@
+.tabla-container {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0;
+}
+
+.tabla-centrada {
+  max-width: 800px;
+  width: 100%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tabla-centrada .p-datatable-table {
+  text-align: center;
+}
+
+.tabla-centrada .p-datatable-thead > tr > th {
+  text-align: center;
+  font-weight: 600;
+  background-color: #f8f9fa;
+}
+
+.tabla-centrada .p-datatable-tbody > tr > td {
+  text-align: center;
+}
+
+/* Centrar los botones en la columna de acciones */
+.tabla-centrada .p-datatable-tbody > tr > td:last-child {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-container {
+  padding: 2rem;
+}
+
 .botones-container {
   display: flex;
   gap: 1rem;
-  justify-content: left;
-  margin-top: 2rem;
+  justify-content: right;
+  margin-bottom: 2rem;
+  margin-left: 2rem;
+  margin-right: 2rem;
+  margin-top: 4rem;
 }
 
 .boton-inicio {
@@ -20,4 +63,70 @@
 .boton-inicio:focus {
   outline: none;
   box-shadow: 0 4px 12px rgba(48, 63, 159, 0.4);
+}
+
+.boton-añadir {
+  background-color: #28a745;
+  border: none;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.boton-añadir:hover {
+  background-color: #218838;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}
+
+.boton-añadir:focus {
+  outline: none;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}
+
+.mapa-wrapper {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  width: 100%;
+  background: #fff;
+  padding: 1rem;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mapa {
+  width: 100%;
+  height: 400px;
+  max-width: 100%;
+  border-radius: 4px;
+}
+
+/* Asegurar que el contenedor del mapa tenga dimensiones definidas */
+.mapa-card .p-card-content {
+  padding: 0;
+}
+
+.mapa-card .p-card-body {
+  padding: 1rem;
+}
+
+.map-container {
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-card);
+  position: relative;
+  height: 500px;
+}
+
+.mapa-card {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.tabla-card {
+  margin-top: 2rem; 
+  margin-bottom: 2rem;
+}
+
+.p-button-success {
+  margin-left: 1rem;
+  margin-right: 1rem;
 }

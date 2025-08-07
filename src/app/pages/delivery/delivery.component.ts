@@ -50,13 +50,18 @@ export class DeliveryComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.paquetes = [
-      { id: 1, nombre: 'Paquete Ejemplo 1', estado: 'Activo' },
-      { id: 2, nombre: 'Paquete Ejemplo 2', estado: 'Inactivo' }
+      { id: 1, direccion: 'UTEQ', estado: 'En tránsito' },
+      { id: 2, direccion: 'Benito juárez', estado: 'Entregado' }
     ];
   }
 
-  async ngAfterViewInit(): Promise<void> {
+  ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
+
+    this.loadMap();
+  }
+
+  private async loadMap(): Promise<void> {
 
     try {
       const L = await import('leaflet');
@@ -65,6 +70,7 @@ export class DeliveryComponent implements OnInit, AfterViewInit {
       const iconRetinaUrl = 'assets/marker-icon-2x.png';
       const iconUrl = 'assets/marker-icon.png';
       const shadowUrl = 'assets/marker-shadow.png';
+
       const iconDefault = L.icon({
         iconRetinaUrl,
         iconUrl,
@@ -75,6 +81,7 @@ export class DeliveryComponent implements OnInit, AfterViewInit {
         tooltipAnchor: [16, -28],
         shadowSize: [41, 41]
       });
+
       L.Marker.prototype.options.icon = iconDefault;
 
       const mapContainer = document.getElementById('map');
@@ -88,9 +95,7 @@ export class DeliveryComponent implements OnInit, AfterViewInit {
         scrollWheelZoom: true
       }).setView([20.5888, -100.3899], 13);
 
-      setTimeout(() => {
-        this.map.invalidateSize();
-      }, 0);
+      setTimeout(() => this.map.invalidateSize(), 0);
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
@@ -105,12 +110,14 @@ export class DeliveryComponent implements OnInit, AfterViewInit {
       this.mapLoading = false;
       this.mapError = false;
 
-      this.messageService.add({
-        severity: 'success',
-        summary: 'Mapa cargado',
-        detail: 'El mapa se ha cargado correctamente',
-        life: 3000
-      });
+      setTimeout(() => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Mapa cargado',
+          detail: 'El mapa se ha cargado correctamente',
+          life: 3000
+        });
+      }, 300);
 
     } catch (error) {
       this.handleMapError('No se pudo cargar el mapa');
@@ -133,8 +140,22 @@ export class DeliveryComponent implements OnInit, AfterViewInit {
     this.router.navigate(['/login']);
   }
 
-  addPaquete() {
-    console.log('Añadir paquete clicked');
+  entregarPaquete() {
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Paquete entregado',
+      detail: 'El paquete se ha entregado a su propietario',
+      life: 3000
+    });
+  }
+
+  cancelarPaquete() {
+    this.messageService.add({
+      severity: 'error',
+      summary: 'Paquete cancelado',
+      detail: 'El paquete se ha cancelado',
+      life: 3000
+    });
   }
 }
 

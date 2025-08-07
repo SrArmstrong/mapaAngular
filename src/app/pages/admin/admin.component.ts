@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit, AfterViewInit, Inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { isPlatformBrowser, CommonModule } from '@angular/common';
 import { MessageService } from 'primeng/api';
@@ -13,6 +13,7 @@ import { RippleModule } from 'primeng/ripple';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { PanelModule } from 'primeng/panel';
 import { SplitterModule } from 'primeng/splitter';
+import { DeliveryService } from '../../services/delivery.service';
 
 @Component({
   selector: 'app-admin',
@@ -33,38 +34,72 @@ import { SplitterModule } from 'primeng/splitter';
   ],
   providers: [MessageService],
   templateUrl: './admin.component.html',
-  styleUrl: './admin.component.css'
+  styleUrls: ['./admin.component.css']
 })
 
 export class AdminComponent implements OnInit, AfterViewInit {
   private map: any;
-  paquetes: any[] = [];
+  deliverys: any[] = [];
   mapLoading = true;
   mapError = false;
 
   constructor(
+    private deliveryService: DeliveryService,
+    private cdr: ChangeDetectorRef,
     private router: Router,
     private messageService: MessageService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {}
 
+  tablaVisible = false;
+
   ngOnInit(): void {
-    this.paquetes = [
-      { id: 1, nombre: 'Paquete Ejemplo 1', estado: 'Activo' },
-      { id: 2, nombre: 'Paquete Ejemplo 2', estado: 'Inactivo' }
-    ];
+    this.deliveryService.getDeliveries().subscribe({
+      next: (response) => {
+        
+        this.deliverys = response.usuarios || [];
+
+        // Opcional: Mostrar mensaje
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Usuarios cargados',
+          detail: `${this.deliverys.length} usuarios encontrados`,
+          life: 3000
+        });
+      },
+      error: (err) => {
+        console.error('Error al cargar usuarios:', err);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'No se pudieron cargar los usuarios',
+          life: 4000
+        });
+      }
+    });
+
+    // Si la tabla depende de esta flag para mostrarse con animación
+    setTimeout(() => {
+      this.tablaVisible = true;
+    }, 100);
   }
 
-  async ngAfterViewInit(): Promise<void> {
+
+  ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
 
+    setTimeout(() => this.cdr.detectChanges(), 0);
+    this.loadMap();
+  }
+
+  private async loadMap(): Promise<void> {
     try {
       const L = await import('leaflet');
 
-      // Configurar iconos de Leaflet (por defecto)
       const iconRetinaUrl = 'assets/marker-icon-2x.png';
       const iconUrl = 'assets/marker-icon.png';
       const shadowUrl = 'assets/marker-shadow.png';
+
       const iconDefault = L.icon({
         iconRetinaUrl,
         iconUrl,
@@ -75,6 +110,7 @@ export class AdminComponent implements OnInit, AfterViewInit {
         tooltipAnchor: [16, -28],
         shadowSize: [41, 41]
       });
+
       L.Marker.prototype.options.icon = iconDefault;
 
       const mapContainer = document.getElementById('map');
@@ -88,9 +124,7 @@ export class AdminComponent implements OnInit, AfterViewInit {
         scrollWheelZoom: true
       }).setView([20.5888, -100.3899], 13);
 
-      setTimeout(() => {
-        this.map.invalidateSize();
-      }, 0);
+      setTimeout(() => this.map.invalidateSize(), 0);
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
@@ -104,7 +138,7 @@ export class AdminComponent implements OnInit, AfterViewInit {
 
       this.mapLoading = false;
       this.mapError = false;
-      
+
       setTimeout(() => {
         this.messageService.add({
           severity: 'success',
@@ -112,7 +146,7 @@ export class AdminComponent implements OnInit, AfterViewInit {
           detail: 'El mapa se ha cargado correctamente',
           life: 3000
         });
-      }, 300)
+      }, 300);
 
     } catch (error) {
       this.handleMapError('No se pudo cargar el mapa');
@@ -136,6 +170,11 @@ export class AdminComponent implements OnInit, AfterViewInit {
   }
 
   addPaquete() {
-    console.log('Añadir paquete clicked');
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Paquete añadido',
+      detail: 'El paquete se ha añadido correctamente',
+      life: 3000
+    });
   }
 }

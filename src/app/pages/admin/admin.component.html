@@ -5,77 +5,67 @@
 
     <div class="botones-container">
         <button pButton type="button" label="Ir al Login" icon="pi pi-user-shield" class="boton-inicio" (click)="IrInicio()"></button>
+        <button pButton type="button" label="Añadir paquete" icon="pi pi-user-shield" class="boton-añadir" (click)="addPaquete()"></button>
     </div>
 
     <!-- Mapa (columna de 8 en pantallas grandes) -->
     <div class="col-12 lg:col-8">
         <p-card styleClass="h-full mapa-card">
-        <ng-template pTemplate="header">
-            <div class="flex align-items-center justify-content-between p-3">
-            <div class="flex align-items-center gap-2">
-                <i class="pi pi-map text-primary text-xl"></i>
-                <span class="font-semibold text-lg">Mapa Interactivo</span>
-            </div>
-            <p-badge 
-                value="Activo" 
-                severity="success" 
-                *ngIf="!mapLoading && !mapError">
-            </p-badge>
-            </div>
-        </ng-template>
 
-        <div class="map-container" style="position: relative; height: 500px;">
-            
-            <!-- Spinner de carga -->
-            <div *ngIf="mapLoading" 
-                class="flex align-items-center justify-content-center h-full">
-            <div class="text-center">
-                <p-progressSpinner strokeWidth="4" animationDuration="1s"></p-progressSpinner>
-                <p class="text-600 mt-3">Cargando mapa...</p>
-            </div>
-            </div>
+            <div class="map-container" style="position: relative; height: 500px;">
+                
+                <!-- Spinner de carga -->
+                <div *ngIf="mapLoading" 
+                    class="flex align-items-center justify-content-center h-full">
+                <div class="text-center">
+                    <p-progressSpinner strokeWidth="4" animationDuration="1s"></p-progressSpinner>
+                    <p class="text-600 mt-3">Cargando mapa...</p>
+                </div>
+                </div>
 
-            <!-- Error de carga -->
-            <div *ngIf="mapError" 
-                class="flex align-items-center justify-content-center h-full">
-            <div class="text-center">
-                <i class="pi pi-exclamation-triangle text-red-500 text-4xl mb-3"></i>
-                <p class="text-600">Error al cargar el mapa</p>
-                <button pButton 
-                label="Reintentar" 
-                icon="pi pi-refresh"
-                severity="secondary"
-                (click)="ngAfterViewInit()">
-                </button>
-            </div>
-            </div>
+                <!-- Error de carga -->
+                <div *ngIf="mapError" 
+                    class="flex align-items-center justify-content-center h-full">
+                <div class="text-center">
+                    <i class="pi pi-exclamation-triangle text-red-500 text-4xl mb-3"></i>
+                    <p class="text-600">Error al cargar el mapa</p>
+                    <button pButton 
+                    label="Reintentar" 
+                    icon="pi pi-refresh"
+                    severity="secondary"
+                    (click)="ngAfterViewInit()">
+                    </button>
+                </div>
+                </div>
 
-            <!-- Contenedor del mapa -->
-            <div id="map" 
-                [style.display]="mapLoading || mapError ? 'none' : 'block'"
-                style="height: 100%; width: 100%; border-radius: 6px; z-index: 1;">
-            </div>
+                <!-- Contenedor del mapa -->
+                <div id="map" 
+                    [style.display]="mapLoading || mapError ? 'none' : 'block'"
+                    style="height: 100%; width: 100%; border-radius: 6px; z-index: 1;">
+                </div>
 
-        </div>
+            </div>
         </p-card>
     </div>
 
-    <!-- Tabla para mostrar los paquetes -->
-    <p-table [value]="paquetes" class="p-mt-3">
-        <ng-template pTemplate="header">
-            <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Estado</th>
-            </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-paquete>
-            <tr>
-            <td>{{ paquete.id }}</td>
-            <td>{{ paquete.nombre }}</td>
-            <td>{{ paquete.estado }}</td>
-            </tr>
-        </ng-template>
-    </p-table>
+    <!-- Tabla para mostrar los deliverys -->
+    <div class="tabla-container" *ngIf="tablaVisible">
+        <p-table [value]="deliverys" class="tabla-centrada">
+            <ng-template pTemplate="header">
+                <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Estado</th>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-delivery>
+                <tr>
+                <td>{{ delivery.id }}</td>
+                <td>{{ delivery.username }}</td>
+                <td>{{ delivery.state }}</td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </div>
 
 </div>

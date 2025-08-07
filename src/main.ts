@@ -5,13 +5,17 @@ import { provideHttpClient } from '@angular/common/http';
 import { routes } from './app/app.routes';
 import { MessageService } from 'primeng/api';
 import { provideAnimations } from '@angular/platform-browser/animations';
+import { appConfig } from './app/app.config'; 
 
-bootstrapApplication(AppComponent, {
+bootstrapApplication(AppComponent, appConfig );
+
+/*
+{
   providers: [
     MessageService,
     provideAnimations(),
     provideRouter(routes),
     provideHttpClient()
-
   ]
-});
+}
+*/
