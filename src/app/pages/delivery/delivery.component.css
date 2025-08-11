@@ -154,3 +154,62 @@
   padding: 8px 16px;
   border-radius: 4px;
 }
+
+/* Estilos para los estados */
+.status-delivered {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.status-cancelled {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: bold;
+}
+
+.status-badge.status-delivered {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-badge.status-cancelled {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Spinner para botones */
+.pi-spinner {
+    margin-right: 0.5rem;
+}
+
+/* Mejoras para los botones */
+.p-button-success {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.p-button-success:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+.p-button-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.p-button-danger:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+/* Loading spinner */
+.p-progress-spinner {
+    margin: 0 auto;
+    display: block;
+}

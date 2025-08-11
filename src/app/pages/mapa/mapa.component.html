@@ -1,0 +1,31 @@
+<div class="map-container" style="position: relative; height: 500px;">
+  <!-- Spinner de carga -->
+  <div *ngIf="mapLoading" 
+      class="flex align-items-center justify-content-center h-full">
+    <div class="text-center">
+      <p-progressSpinner strokeWidth="4" animationDuration="1s"></p-progressSpinner>
+      <p class="text-600 mt-3">Cargando mapa...</p>
+    </div>
+  </div>
+
+  <!-- Error de carga -->
+  <div *ngIf="mapError" 
+      class="flex align-items-center justify-content-center h-full">
+    <div class="text-center">
+      <i class="pi pi-exclamation-triangle text-red-500 text-4xl mb-3"></i>
+      <p class="text-600">Error al cargar el mapa</p>
+      <button pButton 
+          label="Reintentar" 
+          icon="pi pi-refresh"
+          severity="secondary"
+          (click)="reloadMap()">
+      </button>
+    </div>
+  </div>
+
+  <!-- Contenedor del mapa -->
+  <div id="map" 
+      [style.display]="mapLoading || mapError ? 'none' : 'block'"
+      style="height: 100%; width: 100%; border-radius: 6px; z-index: 1;">
+  </div>
+</div>

@@ -1,6 +1,5 @@
-import { Component, OnInit, AfterViewInit, Inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { isPlatformBrowser, CommonModule } from '@angular/common';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
@@ -10,16 +9,35 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { DividerModule } from 'primeng/divider';
 import { BadgeModule } from 'primeng/badge';
 import { RippleModule } from 'primeng/ripple';
-import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { PanelModule } from 'primeng/panel';
-import { SplitterModule } from 'primeng/splitter';
+import { DialogModule } from 'primeng/dialog';
+import { InputTextModule } from 'primeng/inputtext';
+import { CommonModule } from '@angular/common';
+import { TagModule } from 'primeng/tag';
+import { FormsModule } from '@angular/forms';
 import { DeliveryService } from '../../services/delivery.service';
+import { PackagesService } from '../../services/package.service';
+import { MapComponent } from '../mapa/mapa.component';
+
+interface Package {
+  id: number;
+  direccion: string;
+  estatus: string;
+  deliveryid: number | null;
+}
+
+interface Delivery {
+  id: number;
+  username: string;
+  state: string;
+}
 
 @Component({
   selector: 'app-admin',
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     ButtonModule,
     CardModule,
     TableModule,
@@ -28,153 +46,166 @@ import { DeliveryService } from '../../services/delivery.service';
     DividerModule,
     BadgeModule,
     RippleModule,
-    ProgressSpinnerModule,
     PanelModule,
-    SplitterModule
+    DialogModule,
+    InputTextModule,
+    MapComponent,
+    TagModule
   ],
   providers: [MessageService],
   templateUrl: './admin.component.html',
   styleUrls: ['./admin.component.css']
 })
+export class AdminComponent implements OnInit {
+  deliverys: Delivery[] = [];
+  unassignedPackages: Package[] = [];
+  selectedDelivery: Delivery | null = null;
+  displayAddPackageDialog = false;
+  displayAssignDialog = false;
 
-export class AdminComponent implements OnInit, AfterViewInit {
-  private map: any;
-  deliverys: any[] = [];
-  mapLoading = true;
-  mapError = false;
-
-  constructor(
-    private deliveryService: DeliveryService,
-    private cdr: ChangeDetectorRef,
-    private router: Router,
-    private messageService: MessageService,
-    @Inject(PLATFORM_ID) private platformId: Object
-  ) {}
-
-  tablaVisible = false;
-
-  ngOnInit(): void {
-    this.deliveryService.getDeliveries().subscribe({
-      next: (response) => {
-        
-        this.deliverys = response.usuarios || [];
-
-        // Opcional: Mostrar mensaje
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Usuarios cargados',
-          detail: `${this.deliverys.length} usuarios encontrados`,
-          life: 3000
-        });
-      },
-      error: (err) => {
-        console.error('Error al cargar usuarios:', err);
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'No se pudieron cargar los usuarios',
-          life: 4000
-        });
-      }
-    });
-
-    // Si la tabla depende de esta flag para mostrarse con animación
-    setTimeout(() => {
-      this.tablaVisible = true;
-    }, 100);
-  }
-
-
-  ngAfterViewInit(): void {
-    if (!isPlatformBrowser(this.platformId)) return;
-
-    setTimeout(() => this.cdr.detectChanges(), 0);
-    this.loadMap();
-  }
-
-  private async loadMap(): Promise<void> {
-    try {
-      const L = await import('leaflet');
-
-      const iconRetinaUrl = 'assets/marker-icon-2x.png';
-      const iconUrl = 'assets/marker-icon.png';
-      const shadowUrl = 'assets/marker-shadow.png';
-
-      const iconDefault = L.icon({
-        iconRetinaUrl,
-        iconUrl,
-        shadowUrl,
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        tooltipAnchor: [16, -28],
-        shadowSize: [41, 41]
-      });
-
-      L.Marker.prototype.options.icon = iconDefault;
-
-      const mapContainer = document.getElementById('map');
-      if (!mapContainer) {
-        this.handleMapError('No se encontró el contenedor del mapa');
-        return;
-      }
-
-      this.map = L.map(mapContainer, {
-        zoomControl: true,
-        scrollWheelZoom: true
-      }).setView([20.5888, -100.3899], 13);
-
-      setTimeout(() => this.map.invalidateSize(), 0);
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 18
-      }).addTo(this.map);
-
-      L.marker([20.5888, -100.3899])
-        .addTo(this.map)
-        .bindPopup('Ubicación de Querétaro')
-        .openPopup();
-
-      this.mapLoading = false;
-      this.mapError = false;
-
-      setTimeout(() => {
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Mapa cargado',
-          detail: 'El mapa se ha cargado correctamente',
-          life: 3000
-        });
-      }, 300);
-
-    } catch (error) {
-      this.handleMapError('No se pudo cargar el mapa');
-      console.error(error);
+    // Agregar estos nuevos métodos:
+  getStatusSeverity(status: string): string {
+    switch (status) {
+      case 'En espera':
+        return 'warning';
+      case 'En camino':
+        return 'info';
+      case 'Entregado':
+        return 'success';
+      case 'Cancelado':
+        return 'danger';
+      default:
+        return 'info';
     }
   }
 
-  private handleMapError(msg: string) {
-    this.mapError = true;
-    this.mapLoading = false;
+  getDeliveryStatusSeverity(status: string): string {
+    switch (status) {
+      case 'Disponible':
+        return 'success';
+      case 'Ocupado':
+        return 'warning';
+      case 'Inactivo':
+        return 'danger';
+      default:
+        return 'info';
+    }
+  }
+  
+  newPackage = {
+    direccion: ''
+  };
+
+  constructor(
+    private deliveryService: DeliveryService,
+    private packagesService: PackagesService,
+    private router: Router,
+    private messageService: MessageService
+  ) {}
+
+  ngOnInit(): void {
+    this.loadDeliveries();
+  }
+
+  loadDeliveries(): void {
+    this.deliveryService.getDeliveries().subscribe({
+      next: (response) => {
+        this.deliverys = response.usuarios || [];
+      },
+      error: (err) => {
+        console.error('Error al cargar repartidores:', err);
+        this.showError('No se pudieron cargar los repartidores');
+      }
+    });
+  }
+
+  loadUnassignedPackages(): void {
+    this.packagesService.getPackages().subscribe({
+      next: (response) => {
+        this.unassignedPackages = response.paquetes || [];
+      },
+      error: (err) => {
+        console.error('Error al cargar paquetes:', err);
+        this.showError('No se pudieron cargar los paquetes');
+      }
+    });
+  }
+
+  showAddPackageDialog() {
+    this.displayAddPackageDialog = true;
+  }
+
+  addPackage() {
+    if (!this.newPackage.direccion) {
+      this.showWarn('La dirección es requerida');
+      return;
+    }
+
+    this.packagesService.addPackage(this.newPackage).subscribe({
+      next: (response) => {
+        this.showSuccess('Paquete añadido correctamente');
+        this.displayAddPackageDialog = false;
+        this.newPackage = { direccion: '' };
+        this.loadUnassignedPackages();
+      },
+      error: (err) => {
+        console.error('Error al añadir paquete:', err);
+        this.showError('No se pudo añadir el paquete');
+      }
+    });
+  }
+
+  showAssignDialog(delivery: Delivery) {
+    this.selectedDelivery = delivery;
+    this.loadUnassignedPackages();
+    this.displayAssignDialog = true;
+  }
+
+  assignPackage(packageId: number) {
+    if (!this.selectedDelivery) return;
+
+    this.packagesService.assignPackage(packageId, this.selectedDelivery.id).subscribe({
+      next: (response) => {
+        this.showSuccess('Paquete asignado correctamente');
+        this.displayAssignDialog = false;
+        this.selectedDelivery = null;
+        this.loadUnassignedPackages();
+      },
+      error: (err) => {
+        console.error('Error al asignar paquete:', err);
+        this.showError('No se pudo asignar el paquete');
+      }
+    });
+  }
+
+  private showSuccess(message: string): void {
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Éxito',
+      detail: message,
+      life: 3000
+    });
+  }
+
+  private showError(message: string): void {
     this.messageService.add({
       severity: 'error',
-      summary: 'Error de Mapa',
-      detail: msg,
+      summary: 'Error',
+      detail: message,
       life: 4000
+    });
+  }
+
+  private showWarn(message: string): void {
+    this.messageService.add({
+      severity: 'warn',
+      summary: 'Advertencia',
+      detail: message,
+      life: 3000
     });
   }
 
   IrInicio() {
     this.router.navigate(['/login']);
-  }
-
-  addPaquete() {
-    this.messageService.add({
-      severity: 'info',
-      summary: 'Paquete añadido',
-      detail: 'El paquete se ha añadido correctamente',
-      life: 3000
-    });
   }
 }

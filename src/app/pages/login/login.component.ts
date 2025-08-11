@@ -33,9 +33,20 @@ export class LoginComponent {
     this.loginService.login(this.username, this.password).subscribe({
       next: (res) => {
         const rol = res?.usuario?.role;
+        const userId = res?.usuario?.id;
 
         if (rol === 'admin' || rol === 'delivery') {
           console.log('Rol recibido:', rol);
+
+          // Guardar el ID del usuario en localStorage
+          if (userId) {
+            localStorage.setItem('userId', userId.toString());
+          }
+          
+          // También podrías guardar el rol si lo necesitas
+          localStorage.setItem('userRole', rol);
+          
+          console.log('ID de usuario recibido:', userId);
           // Mostramos toast de éxito
           this.messageService.add({
             severity: 'success',

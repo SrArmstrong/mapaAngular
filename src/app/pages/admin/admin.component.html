@@ -1,71 +1,90 @@
-<!-- Contenido principal -->
 <p-toast></p-toast>
 
 <div class="grid">
-
-    <div class="botones-container">
-        <button pButton type="button" label="Ir al Login" icon="pi pi-sign-out" class="boton-inicio" (click)="IrInicio()"></button>
-        <button pButton type="button" label="Añadir paquete" icon="pi pi-plus" class="boton-añadir" (click)="addPaquete()"></button>
+    <div class="botones-container p-mb-4">
+        <button pButton type="button" label="Ir al Login" icon="pi pi-sign-out" 
+                class="p-button-danger" (click)="IrInicio()"></button>
+        <button pButton type="button" label="Añadir paquete" icon="pi pi-plus" 
+                class="p-button-success" (click)="showAddPackageDialog()"></button>
     </div>
 
-    <!-- Mapa (columna de 8 en pantallas grandes) -->
-    <div class="col-12 lg:col-8">
-        <p-card styleClass="h-full mapa-card">
+    <!-- Diálogo para añadir paquete -->
+    <p-dialog header="Añadir nuevo paquete" [(visible)]="displayAddPackageDialog" [style]="{width: '500px'}">
+        <div class="p-fluid p-field">
+            <label for="direccion">Dirección</label>
+            <input id="direccion" type="text" pInputText [(ngModel)]="newPackage.direccion" 
+                   placeholder="Ingrese la dirección del paquete">
+        </div>
+        
+        <ng-template pTemplate="footer">
+            <button pButton type="button" label="Cancelar" icon="pi pi-times" 
+                    (click)="displayAddPackageDialog = false" class="p-button-text"></button>
+            <button pButton type="button" label="Guardar" icon="pi pi-check" 
+                    (click)="addPackage()"></button>
+        </ng-template>
+    </p-dialog>
 
-            <div class="map-container" style="position: relative; height: 500px;">
-                
-                <!-- Spinner de carga -->
-                <div *ngIf="mapLoading" 
-                    class="flex align-items-center justify-content-center h-full">
-                <div class="text-center">
-                    <p-progressSpinner strokeWidth="4" animationDuration="1s"></p-progressSpinner>
-                    <p class="text-600 mt-3">Cargando mapa...</p>
-                </div>
-                </div>
-
-                <!-- Error de carga -->
-                <div *ngIf="mapError" 
-                    class="flex align-items-center justify-content-center h-full">
-                <div class="text-center">
-                    <i class="pi pi-exclamation-triangle text-red-500 text-4xl mb-3"></i>
-                    <p class="text-600">Error al cargar el mapa</p>
-                    <button pButton 
-                    label="Reintentar" 
-                    icon="pi pi-refresh"
-                    severity="secondary"
-                    (click)="ngAfterViewInit()">
-                    </button>
-                </div>
-                </div>
-
-                <!-- Contenedor del mapa -->
-                <div id="map" 
-                    [style.display]="mapLoading || mapError ? 'none' : 'block'"
-                    style="height: 100%; width: 100%; border-radius: 6px; z-index: 1;">
-                </div>
-
-            </div>
-        </p-card>
-    </div>
-
-    <!-- Tabla para mostrar los deliverys -->
-    <div class="tabla-container" *ngIf="tablaVisible">
-        <p-table [value]="deliverys" class="tabla-centrada">
+    <!-- Diálogo para asignar paquetes -->
+    <p-dialog header="Asignar paquetes a {{selectedDelivery?.username}}" [(visible)]="displayAssignDialog" 
+              [style]="{width: '700px'}" [modal]="true">
+        <p-table [value]="unassignedPackages" [paginator]="true" [rows]="5" [loading]="unassignedPackages.length === 0">
             <ng-template pTemplate="header">
                 <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Estado</th>
+                    <th>ID</th>
+                    <th>Dirección</th>
+                    <th>Estado</th>
+                    <th>Acción</th>
                 </tr>
             </ng-template>
-            <ng-template pTemplate="body" let-delivery>
+            <ng-template pTemplate="body" let-package>
                 <tr>
-                <td>{{ delivery.id }}</td>
-                <td>{{ delivery.username }}</td>
-                <td>{{ delivery.state }}</td>
+                    <td>{{ package.id }}</td>
+                    <td>{{ package.direccion }}</td>
+                    <td><p-tag [value]="package.estatus" [severity]="getStatusSeverity(package.estatus)"></p-tag></td>
+                    <td>
+                        <button pButton type="button" icon="pi pi-check" label="Asignar" 
+                                (click)="assignPackage(package.id)" class="p-button-sm"></button>
+                    </td>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+                <tr>
+                    <td colspan="4">No hay paquetes disponibles para asignar</td>
                 </tr>
             </ng-template>
         </p-table>
+    </p-dialog>
+
+    <!-- Mapa y tabla de repartidores -->
+    <div class="col-12 lg:col-8">
+        <p-card header="Mapa de Repartidores" styleClass="h-full">
+            <app-map [initialCoords]="[20.5888, -100.3899]" [initialZoom]="13"></app-map>
+        </p-card>
     </div>
 
+    <div class="col-12 lg:col-4">
+        <p-card header="Lista de Repartidores">
+            <p-table [value]="deliverys" [paginator]="true" [rows]="5">
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Estado</th>
+                        <th>Acción</th>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-delivery>
+                    <tr>
+                        <td>{{ delivery.id }}</td>
+                        <td>{{ delivery.username }}</td>
+                        <td><p-tag [value]="delivery.state" [severity]="getDeliveryStatusSeverity(delivery.state)"></p-tag></td>
+                        <td>
+                            <button pButton type="button" icon="pi pi-box" label="Asignar" 
+                                    (click)="showAssignDialog(delivery)" class="p-button-sm"></button>
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </p-card>
+    </div>
 </div>
