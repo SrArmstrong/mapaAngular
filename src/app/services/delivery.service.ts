@@ -14,4 +14,8 @@ export class DeliveryService {
         return this.http.get<any>(`${this.apiUrl}/delivery`);
     }
 
+    updateDeliveryState(deliveryId: number, state: string): Observable<any> {
+        return this.http.put<any>(`${this.apiUrl}/updateDeliveryState/${deliveryId}`, { state });
+    }
+
 }

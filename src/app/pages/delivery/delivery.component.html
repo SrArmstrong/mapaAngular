@@ -5,6 +5,7 @@
         <button pButton type="button" label="Ir al Login" icon="pi pi-user-shield" class="boton-inicio" (click)="IrInicio()"></button>
     </div>
 
+    <!-- Ubicación actual -->
     <div class="ubicacion-actual">
         <p *ngIf="ubicacionActual">
             <i class="pi pi-map-marker"></i> Ubicación actual: 
@@ -14,6 +15,21 @@
         <p *ngIf="!ubicacionActual" class="text-warning">
             <i class="pi pi-spinner pi-spin"></i> Obteniendo ubicación...
         </p>
+    </div>
+
+    <!-- Estado del delivery -->
+    <div class="estado-delivery">
+        <p>Estado del delivery:</p>
+        <button pButton 
+                type="button" 
+                [label]="deliveryState" 
+                [icon]="deliveryState === 'Activo' ? 'pi pi-check-circle' : 'pi pi-times-circle'"
+                [class]="getStateButtonClass()"
+                [disabled]="updatingState"
+                (click)="toggleDeliveryState()">
+            <span *ngIf="updatingState" class="pi pi-spinner pi-spin"></span>
+            <span *ngIf="!updatingState">{{ deliveryState }}</span>
+        </button>
     </div>
 
 

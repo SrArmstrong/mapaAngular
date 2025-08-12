@@ -15,6 +15,7 @@ import { MapComponent } from '../mapa/mapa.component';
 import { io, Socket } from 'socket.io-client';
 import { PackagesService } from '../../services/package.service';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { DeliveryService } from '../../services/delivery.service';
 
 interface Package {
   id: number;
@@ -50,6 +51,8 @@ export class DeliveryComponent implements OnInit, OnDestroy {
   updatingStatus: { [key: number]: boolean } = {};
   ubicacionActual: { lat: number; lng: number } | null = null;
   deliveryId: number | null = null;
+  deliveryState: string = 'Inactivo';
+  updatingState: boolean = false;
 
   private socket!: Socket;
   private geoWatchId?: number;
@@ -58,6 +61,7 @@ export class DeliveryComponent implements OnInit, OnDestroy {
     private router: Router,
     private messageService: MessageService,
     private packagesService: PackagesService,
+    private deliveryService: DeliveryService
   ) {}
 
   ngOnInit(): void {
@@ -84,6 +88,7 @@ export class DeliveryComponent implements OnInit, OnDestroy {
 
     this.startGeolocationTracking();
   }
+  
 
   private startGeolocationTracking(): void {
     if (navigator.geolocation) {
@@ -191,6 +196,41 @@ export class DeliveryComponent implements OnInit, OnDestroy {
         this.updatingStatus[paquete.id] = false;
       }
     });
+  }
+
+  toggleDeliveryState(): void {
+      if (!this.deliveryId) return;
+      
+      this.updatingState = true;
+      const newState = this.deliveryState === 'Activo' ? 'Inactivo' : 'Activo';
+      
+      this.deliveryService.updateDeliveryState(this.deliveryId, newState).subscribe({
+          next: () => {
+              this.deliveryState = newState;
+              this.messageService.add({
+                  severity: 'success',
+                  summary: 'Éxito',
+                  detail: `Estado cambiado a ${newState}`,
+                  life: 3000
+              });
+          },
+          error: (err) => {
+              console.error('Error al actualizar estado:', err);
+              this.messageService.add({
+                  severity: 'error',
+                  summary: 'Error',
+                  detail: 'No se pudo actualizar el estado',
+                  life: 3000
+              });
+          },
+          complete: () => {
+              this.updatingState = false;
+          }
+      });
+  }
+
+  getStateButtonClass(): string {
+      return this.deliveryState === 'Activo' ? 'p-button-success' : 'p-button-danger';
   }
 
   cancelarPaquete(paquete: Package) {
