@@ -18,13 +18,10 @@ declare let L: any;
   templateUrl: './mapa.component.html',
   styleUrls: ['./mapa.component.css']
 })
-
 export class MapComponent implements AfterViewInit, OnChanges {
   private map: any;
   private markers: { [key: number]: any } = {};
   private currentMarker: any;
-  private deliveryIcon: any;
-  private disconnectedIcon: any;
   
   @Input() initialCoords: [number, number] = [20.5888, -100.3899];
   @Input() initialZoom: number = 13;
@@ -57,8 +54,6 @@ export class MapComponent implements AfterViewInit, OnChanges {
   private async loadMap(): Promise<void> {
     try {
       const L = await import('leaflet');
-      
-      this.setupCustomIcons(L);
 
       const iconRetinaUrl = 'assets/marker-icon-2x.png';
       const iconUrl = 'assets/marker-icon.png';
@@ -117,69 +112,9 @@ export class MapComponent implements AfterViewInit, OnChanges {
     }
   }
 
-  private setupCustomIcons(L: any): void {
-    const iconRetinaUrl = 'assets/marker-icon-2x.png';
-    const iconUrl = 'assets/marker-icon.png';
-    const shadowUrl = 'assets/marker-shadow.png';
-
-    // Icono para repartidores conectados
-    this.deliveryIcon = L.icon({
-      iconUrl: 'assets/delivery-icon.png', // Crea o usa un icono diferente
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -32]
-    });
-
-    // Icono para repartidores desconectados (opcional)
-    this.disconnectedIcon = L.icon({
-      iconUrl: 'assets/disconnected-icon.png', // Icono gris o diferente
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -32]
-    });
-
-    // Icono por defecto para la ubicación actual
-    L.Marker.prototype.options.icon = L.icon({
-      iconRetinaUrl,
-      iconUrl,
-      shadowUrl,
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      tooltipAnchor: [16, -28],
-      shadowSize: [41, 41]
-    });
-  }
-
   private updateCurrentMarker(): void {
     if (!this.map) return;
 
-    // Eliminar marcadores antiguos
-    Object.keys(this.markers).forEach(id => {
-      const numericId = Number(id);
-      if (!this.deliveryLocations[numericId]) {
-        this.map.removeLayer(this.markers[numericId]);
-        delete this.markers[numericId];
-      }
-    });
-
-    // Añadir/actualizar marcadores
-    Object.entries(this.deliveryLocations).forEach(([id, location]) => {
-      const deliveryId = Number(id);
-      const position = [location.lat, location.lng];
-
-      if (this.markers[deliveryId]) {
-        this.markers[deliveryId].setLatLng(position);
-      } else {
-        this.markers[deliveryId] = L.marker(position, {
-          icon: this.deliveryIcon // Usar icono personalizado
-        })
-        .addTo(this.map)
-        .bindPopup(`Repartidor ${deliveryId}`)
-        .openPopup();
-      }
-    });
-    
     const position = this.currentLocation ? 
       [this.currentLocation.lat, this.currentLocation.lng] : 
       this.initialCoords;

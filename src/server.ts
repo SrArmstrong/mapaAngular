@@ -32,10 +32,19 @@ const angularApp = new AngularNodeAppEngine();
 app.use(
   express.static(browserDistFolder, {
     maxAge: '1y',
-    index: false,
-    redirect: false,
+    //index: false,
+    //redirect: false,
   }),
 );
+
+app.get('*', (req, res, next) => {
+  angularApp
+    .handle(req)
+    .then((response) =>
+      response ? writeResponseToNodeResponse(response, res) : next(),
+    )
+    .catch(next);
+});
 
 /**
  * Handle all other requests by rendering the Angular application.

@@ -1,44 +1,31 @@
 <div class="map-container" style="position: relative; height: 500px;">
-  <!-- Spinner de carga con animación mejorada -->
+  <!-- Spinner de carga -->
   <div *ngIf="mapLoading" 
-      class="flex flex-column align-items-center justify-content-center h-full gap-3"
-      style="background: rgba(255, 255, 255, 0.8); z-index: 10; position: absolute; top: 0; left: 0; right: 0; bottom: 0;">
-    <p-progressSpinner 
-        strokeWidth="4" 
-        animationDuration=".5s"
-        styleClass="w-2rem h-2rem"
-        [style]="{color: 'var(--primary-color)'}">
-    </p-progressSpinner>
-    <p class="text-600 font-medium">Cargando mapa...</p>
-    <small class="text-400">Por favor espere</small>
+      class="flex align-items-center justify-content-center h-full">
+    <div class="text-center">
+      <p-progressSpinner strokeWidth="4" animationDuration="1s"></p-progressSpinner>
+      <p class="text-600 mt-3">Cargando mapa...</p>
+    </div>
   </div>
 
-  <!-- Mensaje de error mejorado -->
+  <!-- Error de carga -->
   <div *ngIf="mapError" 
-      class="flex flex-column align-items-center justify-content-center h-full gap-4"
-      style="background: rgba(255, 255, 255, 0.9); z-index: 10; position: absolute; top: 0; left: 0; right: 0; bottom: 0;">
-    <div class="flex flex-column align-items-center">
-      <i class="pi pi-exclamation-circle text-6xl text-red-500 mb-3"></i>
-      <h4 class="text-900 mb-1">Error al cargar el mapa</h4>
-      <p class="text-600 text-center mb-4" style="max-width: 300px;">
-        No se pudo cargar el mapa. Verifique su conexión a internet e intente nuevamente.
-      </p>
-    </div>
-    <div class="flex gap-2">
+      class="flex align-items-center justify-content-center h-full">
+    <div class="text-center">
+      <i class="pi pi-exclamation-triangle text-red-500 text-4xl mb-3"></i>
+      <p class="text-600">Error al cargar el mapa</p>
       <button pButton 
           label="Reintentar" 
           icon="pi pi-refresh"
-          severity="primary"
+          severity="secondary"
           (click)="reloadMap()">
       </button>
     </div>
   </div>
 
-  <!-- Contenedor del mapa con sombra y transición -->
+  <!-- Contenedor del mapa -->
   <div id="map" 
-      [class.map-hidden]="mapLoading || mapError"
-      style="height: 100%; width: 100%; 
-             border-radius: 8px; 
-             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-             transition: opacity 0.3s ease;">
+      [style.display]="mapLoading || mapError ? 'none' : 'block'"
+      style="height: 100%; width: 100%; border-radius: 6px; z-index: 1;">
   </div>
+</div>

@@ -64,7 +64,6 @@ export class AdminComponent implements OnInit, OnDestroy {
   displayAddPackageDialog = false;
   displayAssignDialog = false;
   repartidoresUbicaciones: { [key: number]: { lat: number; lng: number } } = {};
-  connectedDeliveries: Set<number> = new Set();
   
   newPackage = {
     direccion: ''
@@ -84,6 +83,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     this.loadDeliveries();
     this.loadUnassignedPackages();
     this.initSocket();
+    this.startAutoRefresh();
   }
 
   ngOnDestroy(): void {
@@ -114,36 +114,16 @@ export class AdminComponent implements OnInit, OnDestroy {
     // Escuchar actualizaciones de ubicación
     this.socket.on('ubicacion_repartidor', (data: { deliveryId: number, ubicacion: { lat: number; lng: number } }) => {
       this.repartidoresUbicaciones[data.deliveryId] = data.ubicacion;
-      this.connectedDeliveries.add(data.deliveryId);
       console.log('Ubicación actualizada:', data);
     });
-
-    // Escuchar desconexiones de repartidores
-    this.socket.on('repartidor_desconectado', (deliveryId: number) => {
-      this.connectedDeliveries.delete(deliveryId);
-      // Opcional: puedes eliminar la ubicación o marcarla como desconectada
-      console.log(`Repartidor ${deliveryId} desconectado`);
-    });
-
 
     // Solicitar ubicaciones actuales al conectarse
     this.socket.emit('obtener_ubicaciones');
 
     // Recibir ubicaciones actuales
-    this.socket.on('ubicaciones_actuales', (ubicaciones: { [key: number]: { lat: number; lng: number; socketId?: string } }) => {
-      this.repartidoresUbicaciones = {};
-      this.connectedDeliveries.clear();
-      
-      for (const [id, ubicacion] of Object.entries(ubicaciones)) {
-        const deliveryId = Number(id);
-        this.repartidoresUbicaciones[deliveryId] = {
-          lat: ubicacion.lat,
-          lng: ubicacion.lng
-        };
-        this.connectedDeliveries.add(deliveryId);
-      }
-      
-      console.log('Ubicaciones actuales recibidas:', this.repartidoresUbicaciones);
+    this.socket.on('ubicaciones_actuales', (ubicaciones: { [key: number]: { lat: number; lng: number } }) => {
+      this.repartidoresUbicaciones = ubicaciones;
+      console.log('Ubicaciones actuales recibidas:', ubicaciones);
     });
   }
 
@@ -159,24 +139,14 @@ export class AdminComponent implements OnInit, OnDestroy {
     });
   }
 
-  loadingUnassigned: boolean = false;
-
   loadUnassignedPackages(): void {
-    this.loadingUnassigned = true;
-    this.unassignedPackages = []; 
-
     this.packagesService.getPackages().subscribe({
       next: (response: any) => {
-        this.unassignedPackages = (response.paquetes || []);
-        this.loadingUnassigned = false;
+        this.unassignedPackages = (response.paquetes || []).filter((p: Package) => p.deliveryid === null);
       },
       error: (err) => {
         console.error('Error al cargar paquetes:', err);
-        this.loadingUnassigned = false;
         this.showError('No se pudieron cargar los paquetes');
-      },
-      complete: () => {
-        this.loadingUnassigned = false;
       }
     });
   }

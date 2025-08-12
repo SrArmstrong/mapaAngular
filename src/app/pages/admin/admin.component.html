@@ -25,8 +25,9 @@
     </p-dialog>
 
     <!-- Diálogo para asignar paquetes -->
-    <p-dialog header="Asignar paquetes a {{selectedDelivery?.username}}" [(visible)]="displayAssignDialog" [style]="{width: '700px'}" [modal]="true">
-        <p-table [value]="unassignedPackages" [paginator]="true" [rows]="5" [loading]="loadingUnassigned">
+    <p-dialog header="Asignar paquetes a {{selectedDelivery?.username}}" [(visible)]="displayAssignDialog" 
+              [style]="{width: '700px'}" [modal]="true">
+        <p-table [value]="unassignedPackages" [paginator]="true" [rows]="5" [loading]="unassignedPackages.length === 0">
             <ng-template pTemplate="header">
                 <tr>
                     <th>ID</th>
@@ -41,7 +42,8 @@
                     <td>{{ package.direccion }}</td>
                     <td><p-tag [value]="package.estatus" [severity]="getStatusSeverity(package.estatus)"></p-tag></td>
                     <td>
-                        <button pButton type="button" icon="pi pi-check" label="Asignar" (click)="assignPackage(package)" class="p-button-sm"></button>
+                        <button pButton type="button" icon="pi pi-check" label="Asignar" 
+                                (click)="assignPackage(package)" class="p-button-sm"></button>
                     </td>
                 </tr>
             </ng-template>
@@ -60,7 +62,6 @@
         </p-card>
     </div>
 
-    <!-- Lista de Repartidores -->
     <div class="col-12 lg:col-4">
         <p-card header="Lista de Repartidores">
             <p-table [value]="deliverys" [paginator]="true" [rows]="5">
