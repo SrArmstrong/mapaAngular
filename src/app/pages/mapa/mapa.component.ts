@@ -1,9 +1,11 @@
-import { Component, OnInit, AfterViewInit, Input, ChangeDetectorRef, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit, AfterViewInit, Input, ChangeDetectorRef, Inject, PLATFORM_ID, OnChanges, SimpleChanges } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { MessageService } from 'primeng/api';
 import { CommonModule } from '@angular/common';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { ButtonModule } from 'primeng/button';
+
+declare let L: any;
 
 @Component({
   selector: 'app-map',
@@ -16,11 +18,16 @@ import { ButtonModule } from 'primeng/button';
   templateUrl: './mapa.component.html',
   styleUrls: ['./mapa.component.css']
 })
-export class MapComponent implements AfterViewInit {
+export class MapComponent implements AfterViewInit, OnChanges {
   private map: any;
+  private markers: { [key: number]: any } = {};
+  private currentMarker: any;
+  
   @Input() initialCoords: [number, number] = [20.5888, -100.3899];
   @Input() initialZoom: number = 13;
-  
+  @Input() currentLocation: { lat: number; lng: number } | null = null;
+  @Input() deliveryLocations: { [key: number]: { lat: number; lng: number } } = {};
+
   mapLoading = true;
   mapError = false;
 
@@ -33,6 +40,15 @@ export class MapComponent implements AfterViewInit {
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
     this.loadMap();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['currentLocation'] && this.currentLocation && this.map) {
+      this.updateCurrentMarker();
+    }
+    if (changes['deliveryLocations'] && this.map) {
+      this.updateDeliveryMarkers();
+    }
   }
 
   private async loadMap(): Promise<void> {
@@ -74,10 +90,9 @@ export class MapComponent implements AfterViewInit {
         maxZoom: 18
       }).addTo(this.map);
 
-      L.marker(this.initialCoords)
-        .addTo(this.map)
-        .bindPopup('Ubicación inicial')
-        .openPopup();
+      // Crear marcador inicial
+      this.updateCurrentMarker();
+      this.updateDeliveryMarkers();
 
       this.mapLoading = false;
       this.mapError = false;
@@ -97,6 +112,55 @@ export class MapComponent implements AfterViewInit {
     }
   }
 
+  private updateCurrentMarker(): void {
+    if (!this.map) return;
+
+    const position = this.currentLocation ? 
+      [this.currentLocation.lat, this.currentLocation.lng] : 
+      this.initialCoords;
+
+    if (this.currentMarker) {
+      this.currentMarker.setLatLng(position);
+    } else {
+      this.currentMarker = L.marker(position)
+        .addTo(this.map)
+        .bindPopup(this.currentLocation ? 'Tu ubicación actual' : 'Ubicación inicial')
+        .openPopup();
+    }
+
+    if (this.currentLocation) {
+      this.map.setView([this.currentLocation.lat, this.currentLocation.lng], this.initialZoom);
+    }
+  }
+
+  private updateDeliveryMarkers(): void {
+    if (!this.map) return;
+
+    // Eliminar marcadores antiguos que ya no están en deliveryLocations
+    Object.keys(this.markers).forEach(id => {
+      if (!this.deliveryLocations[Number(id)]) {
+        const numericId = Number(id);
+        this.map.removeLayer(this.markers[numericId]);
+        delete this.markers[numericId];
+      }
+    });
+
+    // Añadir/actualizar marcadores
+    Object.entries(this.deliveryLocations).forEach(([id, location]) => {
+      const deliveryId = Number(id);
+      const position = [location.lat, location.lng];
+
+      if (this.markers[deliveryId]) {
+        this.markers[deliveryId].setLatLng(position);
+      } else {
+        this.markers[deliveryId] = L.marker(position)
+          .addTo(this.map)
+          .bindPopup(`Repartidor ${deliveryId}`)
+          .openPopup();
+      }
+    });
+  }
+
   private handleMapError(msg: string) {
     this.mapError = true;
     this.mapLoading = false;
@@ -106,11 +170,13 @@ export class MapComponent implements AfterViewInit {
       detail: msg,
       life: 4000
     });
+    this.cdr.detectChanges();
   }
 
   reloadMap() {
     this.mapLoading = true;
     this.mapError = false;
     this.loadMap();
+    this.cdr.detectChanges();
   }
 }

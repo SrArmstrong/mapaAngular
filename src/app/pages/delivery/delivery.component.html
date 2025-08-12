@@ -7,10 +7,12 @@
 
     <div class="ubicacion-actual">
         <p *ngIf="ubicacionActual">
-            Lat: {{ ubicacionActual.lat }}, Lng: {{ ubicacionActual.lng }}
+            <i class="pi pi-map-marker"></i> Ubicación actual: 
+            Lat: {{ ubicacionActual.lat | number:'1.4-4' }}, 
+            Lng: {{ ubicacionActual.lng | number:'1.4-4' }}
         </p>
-        <p *ngIf="!ubicacionActual">
-            Obteniendo ubicación...
+        <p *ngIf="!ubicacionActual" class="text-warning">
+            <i class="pi pi-spinner pi-spin"></i> Obteniendo ubicación...
         </p>
     </div>
 
@@ -18,7 +20,7 @@
     <!-- Mapa (columna de 8 en pantallas grandes) -->
     <div class="col-12 lg:col-8">
         <p-card header="Mapa de Repartidores" styleClass="h-full">
-            <app-map [initialCoords]="[20.5888, -100.3899]" [initialZoom]="13"></app-map>
+            <app-map [initialCoords]="[20.5888, -100.3899]" [currentLocation]="ubicacionActual" [initialZoom]="13"></app-map>
         </p-card>
     </div>
 

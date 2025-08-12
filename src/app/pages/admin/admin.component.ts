@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
@@ -15,6 +15,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { CommonModule } from '@angular/common';
 import { TagModule } from 'primeng/tag';
 import { FormsModule } from '@angular/forms';
+import { io, Socket } from 'socket.io-client';
 import { DeliveryService } from '../../services/delivery.service';
 import { PackagesService } from '../../services/package.service';
 import { MapComponent } from '../mapa/mapa.component';
@@ -56,45 +57,20 @@ interface Delivery {
   templateUrl: './admin.component.html',
   styleUrls: ['./admin.component.css']
 })
-export class AdminComponent implements OnInit {
+export class AdminComponent implements OnInit, OnDestroy {
   deliverys: Delivery[] = [];
   unassignedPackages: Package[] = [];
   selectedDelivery: Delivery | null = null;
   displayAddPackageDialog = false;
   displayAssignDialog = false;
-
-    // Agregar estos nuevos métodos:
-  getStatusSeverity(status: string): string {
-    switch (status) {
-      case 'En espera':
-        return 'warning';
-      case 'En camino':
-        return 'info';
-      case 'Entregado':
-        return 'success';
-      case 'Cancelado':
-        return 'danger';
-      default:
-        return 'info';
-    }
-  }
-
-  getDeliveryStatusSeverity(status: string): string {
-    switch (status) {
-      case 'Disponible':
-        return 'success';
-      case 'Ocupado':
-        return 'warning';
-      case 'Inactivo':
-        return 'danger';
-      default:
-        return 'info';
-    }
-  }
+  repartidoresUbicaciones: { [key: number]: { lat: number; lng: number } } = {};
   
   newPackage = {
     direccion: ''
   };
+
+  private socket!: Socket;
+  private refreshInterval: any;
 
   constructor(
     private deliveryService: DeliveryService,
@@ -105,11 +81,55 @@ export class AdminComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadDeliveries();
+    this.loadUnassignedPackages();
+    this.initSocket();
+    this.startAutoRefresh();
+  }
+
+  ngOnDestroy(): void {
+    if (this.socket) {
+      this.socket.disconnect();
+    }
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+    }
+  }
+
+  private startAutoRefresh(): void {
+    this.refreshInterval = setInterval(() => {
+      this.loadDeliveries();
+      this.loadUnassignedPackages();
+    }, 30000); // Actualiza cada 30 segundos
+  }
+
+
+  private initSocket(): void {
+    this.socket = io('http://localhost:3000', {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000
+    });
+
+    
+    // Escuchar actualizaciones de ubicación
+    this.socket.on('ubicacion_repartidor', (data: { deliveryId: number, ubicacion: { lat: number; lng: number } }) => {
+      this.repartidoresUbicaciones[data.deliveryId] = data.ubicacion;
+      console.log('Ubicación actualizada:', data);
+    });
+
+    // Solicitar ubicaciones actuales al conectarse
+    this.socket.emit('obtener_ubicaciones');
+
+    // Recibir ubicaciones actuales
+    this.socket.on('ubicaciones_actuales', (ubicaciones: { [key: number]: { lat: number; lng: number } }) => {
+      this.repartidoresUbicaciones = ubicaciones;
+      console.log('Ubicaciones actuales recibidas:', ubicaciones);
+    });
   }
 
   loadDeliveries(): void {
     this.deliveryService.getDeliveries().subscribe({
-      next: (response) => {
+      next: (response: any) => {
         this.deliverys = response.usuarios || [];
       },
       error: (err) => {
@@ -121,8 +141,8 @@ export class AdminComponent implements OnInit {
 
   loadUnassignedPackages(): void {
     this.packagesService.getPackages().subscribe({
-      next: (response) => {
-        this.unassignedPackages = response.paquetes || [];
+      next: (response: any) => {
+        this.unassignedPackages = (response.paquetes || []).filter((p: Package) => p.deliveryid === null);
       },
       error: (err) => {
         console.error('Error al cargar paquetes:', err);
@@ -142,10 +162,10 @@ export class AdminComponent implements OnInit {
     }
 
     this.packagesService.addPackage(this.newPackage).subscribe({
-      next: (response) => {
+      next: () => {
         this.showSuccess('Paquete añadido correctamente');
         this.displayAddPackageDialog = false;
-        this.newPackage = { direccion: '' };
+        this.newPackage.direccion = '';
         this.loadUnassignedPackages();
       },
       error: (err) => {
@@ -161,11 +181,11 @@ export class AdminComponent implements OnInit {
     this.displayAssignDialog = true;
   }
 
-  assignPackage(packageId: number) {
-    if (!this.selectedDelivery) return;
+  assignPackage(pkg: Package) {
+    if (!this.selectedDelivery || !pkg.id) return;
 
-    this.packagesService.assignPackage(packageId, this.selectedDelivery.id).subscribe({
-      next: (response) => {
+    this.packagesService.assignPackage(pkg.id, this.selectedDelivery.id).subscribe({
+      next: () => {
         this.showSuccess('Paquete asignado correctamente');
         this.displayAssignDialog = false;
         this.selectedDelivery = null;
@@ -176,6 +196,25 @@ export class AdminComponent implements OnInit {
         this.showError('No se pudo asignar el paquete');
       }
     });
+  }
+
+  getStatusSeverity(status: string): string {
+    switch (status) {
+      case 'pending': return 'warning';
+      case 'in_transit': return 'info';
+      case 'delivered': return 'success';
+      case 'cancelled': return 'danger';
+      default: return 'info';
+    }
+  }
+
+  getDeliveryStatusSeverity(status: string): string {
+    switch (status) {
+      case 'Disponible': return 'success';
+      case 'Ocupado': return 'warning';
+      case 'Inactivo': return 'danger';
+      default: return 'info';
+    }
   }
 
   private showSuccess(message: string): void {

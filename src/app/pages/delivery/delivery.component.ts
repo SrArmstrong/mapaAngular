@@ -16,6 +16,13 @@ import { io, Socket } from 'socket.io-client';
 import { PackagesService } from '../../services/package.service';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 
+interface Package {
+  id: number;
+  direccion: string;
+  estatus: string;
+  deliveryid: number | null;
+}
+
 @Component({
   selector: 'app-delivery',
   standalone: true,
@@ -37,11 +44,12 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
   templateUrl: './delivery.component.html',
   styleUrls: ['./delivery.component.css']
 })
-export class DeliveryComponent implements OnInit, OnDestroy{
-  paquetes: any[] = [];
+export class DeliveryComponent implements OnInit, OnDestroy {
+  paquetes: Package[] = [];
   loading = true;
   updatingStatus: { [key: number]: boolean } = {};
   ubicacionActual: { lat: number; lng: number } | null = null;
+  deliveryId: number | null = null;
 
   private socket!: Socket;
   private geoWatchId?: number;
@@ -49,19 +57,35 @@ export class DeliveryComponent implements OnInit, OnDestroy{
   constructor(
     private router: Router,
     private messageService: MessageService,
-    private packagesService: PackagesService
+    private packagesService: PackagesService,
   ) {}
 
   ngOnInit(): void {
+    const storedUserId = localStorage.getItem('userId');
+    if (storedUserId) {
+      this.deliveryId = Number(storedUserId);
+    } else {
+      console.warn('No se encontró userId en localStorage');
+    }
+
+    
     this.loadPackages();
 
-    // Conexión con el servidor Socket.IO
-    this.socket = io('http://localhost:3000'); // Cambia por tu servidor
-    this.socket.on('connect', () => {
-      console.log('Conectado a Socket.IO:', this.socket.id);
+    this.socket = io('http://localhost:3000', {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000
     });
 
-    // Activar geolocalización en tiempo real
+    this.socket.on('connect', () => {
+      console.log('Conectado a Socket.IO:', this.socket.id);
+      this.startGeolocationTracking(); 
+    });
+
+    this.startGeolocationTracking();
+  }
+
+  private startGeolocationTracking(): void {
     if (navigator.geolocation) {
       this.geoWatchId = navigator.geolocation.watchPosition(
         (position) => {
@@ -69,15 +93,25 @@ export class DeliveryComponent implements OnInit, OnDestroy{
             lat: position.coords.latitude,
             lng: position.coords.longitude
           };
-          console.log('Nueva ubicación:', this.ubicacionActual);
 
-          // Enviar al servidor por Socket.IO
-          this.socket.emit('ubicacion_repartidor', this.ubicacionActual);
+          console.log('Nueva ubicación capturada:', this.ubicacionActual);
+
+          if (this.deliveryId) {
+            const payload = { deliveryId: this.deliveryId, ubicacion: this.ubicacionActual };
+            console.log('Emitir ubicación:', payload);
+            this.socket.emit('ubicacion_repartidor', payload);
+          }
         },
         (error) => {
           console.error('Error obteniendo ubicación:', error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'No se pudo obtener la ubicación',
+            life: 3000
+          });
         },
-        { enableHighAccuracy: true, maximumAge: 0 }
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
       );
     } else {
       console.warn('Geolocalización no soportada en este navegador.');
@@ -85,7 +119,6 @@ export class DeliveryComponent implements OnInit, OnDestroy{
   }
 
   ngOnDestroy(): void {
-    // Detener geolocalización y cerrar socket
     if (this.geoWatchId !== undefined) {
       navigator.geolocation.clearWatch(this.geoWatchId);
     }
@@ -97,8 +130,8 @@ export class DeliveryComponent implements OnInit, OnDestroy{
   loadPackages(): void {
     this.loading = true;
     this.packagesService.getPackages().subscribe({
-      next: (response) => {
-        this.paquetes = response.paquetes.map((p: any) => ({
+      next: (response: any) => {
+        this.paquetes = (response.paquetes || []).map((p: any) => ({
           ...p,
           estado: this.mapStatus(p.estatus)
         }));
@@ -131,7 +164,9 @@ export class DeliveryComponent implements OnInit, OnDestroy{
     this.router.navigate(['/login']);
   }
 
-  entregarPaquete(paquete: any) {
+  entregarPaquete(paquete: Package) {
+    if (!paquete.id) return;
+    
     this.updatingStatus[paquete.id] = true;
     this.packagesService.updatePackageStatus(paquete.id, 'delivered').subscribe({
       next: () => {
@@ -141,7 +176,7 @@ export class DeliveryComponent implements OnInit, OnDestroy{
           detail: 'Paquete marcado como entregado',
           life: 3000
         });
-        this.loadPackages();
+        this.updateLocalPackageStatus(paquete.id, 'delivered');
       },
       error: (err) => {
         console.error('Error al actualizar estado:', err);
@@ -158,7 +193,9 @@ export class DeliveryComponent implements OnInit, OnDestroy{
     });
   }
 
-  cancelarPaquete(paquete: any) {
+  cancelarPaquete(paquete: Package) {
+    if (!paquete.id) return;
+    
     this.updatingStatus[paquete.id] = true;
     this.packagesService.updatePackageStatus(paquete.id, 'cancelled').subscribe({
       next: () => {
@@ -168,7 +205,7 @@ export class DeliveryComponent implements OnInit, OnDestroy{
           detail: 'Paquete marcado como cancelado',
           life: 3000
         });
-        this.loadPackages();
+        this.updateLocalPackageStatus(paquete.id, 'cancelled');
       },
       error: (err) => {
         console.error('Error al actualizar estado:', err);
@@ -183,6 +220,14 @@ export class DeliveryComponent implements OnInit, OnDestroy{
         this.updatingStatus[paquete.id] = false;
       }
     });
+  }
+
+  private updateLocalPackageStatus(packageId: number, status: string): void {
+    const index = this.paquetes.findIndex(p => p.id === packageId);
+    if (index !== -1) {
+      this.paquetes[index].estatus = status;
+      //this.paquetes[index].estado = this.mapStatus(status);
+    }
   }
 
   showActions(estado: string): boolean {

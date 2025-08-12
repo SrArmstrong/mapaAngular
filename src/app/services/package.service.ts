@@ -19,7 +19,7 @@ interface SinglePackageResponse {
 
 @Injectable({ providedIn: 'root' })
 export class PackagesService {
-  private apiUrl = 'http://localhost:3001';
+  private apiUrl = 'http://localhost:3000';
 
   constructor(private http: HttpClient) {}
 

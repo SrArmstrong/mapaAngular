@@ -43,7 +43,7 @@
                     <td><p-tag [value]="package.estatus" [severity]="getStatusSeverity(package.estatus)"></p-tag></td>
                     <td>
                         <button pButton type="button" icon="pi pi-check" label="Asignar" 
-                                (click)="assignPackage(package.id)" class="p-button-sm"></button>
+                                (click)="assignPackage(package)" class="p-button-sm"></button>
                     </td>
                 </tr>
             </ng-template>
@@ -58,7 +58,7 @@
     <!-- Mapa y tabla de repartidores -->
     <div class="col-12 lg:col-8">
         <p-card header="Mapa de Repartidores" styleClass="h-full">
-            <app-map [initialCoords]="[20.5888, -100.3899]" [initialZoom]="13"></app-map>
+            <app-map [initialCoords]="[20.5888, -100.3899]" [deliveryLocations]="repartidoresUbicaciones" [initialZoom]="13"></app-map>
         </p-card>
     </div>
 
