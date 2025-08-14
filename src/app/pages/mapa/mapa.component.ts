@@ -3,6 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { MessageService } from 'primeng/api';
 import { CommonModule } from '@angular/common';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { LocationService } from '../../services/location.service';
 import { ButtonModule } from 'primeng/button';
 
 declare let L: any;
@@ -26,7 +27,7 @@ export class MapComponent implements AfterViewInit, OnChanges {
   @Input() initialCoords: [number, number] = [20.5888, -100.3899];
   @Input() initialZoom: number = 13;
   @Input() currentLocation: { lat: number; lng: number } | null = null;
-  @Input() deliveryLocations: { [key: number]: { lat: number; lng: number } } = {};
+  @Input() deliveryLocations: { [key: number]: { lat: number; lng: number; username?: string; state?: string } } = {};
 
   mapLoading = true;
   mapError = false;
@@ -34,21 +35,33 @@ export class MapComponent implements AfterViewInit, OnChanges {
   constructor(
     private cdr: ChangeDetectorRef,
     private messageService: MessageService,
-    @Inject(PLATFORM_ID) private platformId: Object
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private locationService: LocationService
   ) {}
 
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
     this.loadMap();
+    
+    // Suscribirse a actualizaciones de ubicación
+    this.locationService.currentLocations.subscribe(locations => {
+      this.deliveryLocations = locations;
+      this.updateDeliveryMarkers();
+    });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['currentLocation'] && this.currentLocation && this.map) {
-      this.updateCurrentMarker();
+      
+      setTimeout(() => {
+        this.updateCurrentMarker();
+      }, 0);
     }
-    if (changes['deliveryLocations'] && this.map) {
+
+    if (changes['deliveryLocations'] && this.currentLocation && this.map) {
       this.updateDeliveryMarkers();
     }
+
   }
 
   private async loadMap(): Promise<void> {
@@ -56,7 +69,7 @@ export class MapComponent implements AfterViewInit, OnChanges {
       const L = await import('leaflet');
 
       const iconRetinaUrl = 'assets/marker-icon-2x.png';
-      const iconUrl = 'assets/marker-icon.png';
+      const iconUrl = 'assets/marker.png';
       const shadowUrl = 'assets/marker-shadow.png';
 
       const iconDefault = L.icon({
@@ -136,10 +149,10 @@ export class MapComponent implements AfterViewInit, OnChanges {
   private updateDeliveryMarkers(): void {
     if (!this.map) return;
 
-    // Eliminar marcadores antiguos que ya no están en deliveryLocations
+    // Eliminar marcadores antiguos
     Object.keys(this.markers).forEach(id => {
-      if (!this.deliveryLocations[Number(id)]) {
-        const numericId = Number(id);
+      const numericId = Number(id);
+      if (!this.deliveryLocations[numericId]) {
         this.map.removeLayer(this.markers[numericId]);
         delete this.markers[numericId];
       }
@@ -153,10 +166,35 @@ export class MapComponent implements AfterViewInit, OnChanges {
       if (this.markers[deliveryId]) {
         this.markers[deliveryId].setLatLng(position);
       } else {
-        this.markers[deliveryId] = L.marker(position)
-          .addTo(this.map)
-          .bindPopup(`Repartidor ${deliveryId}`)
-          .openPopup();
+        // Configuración del icono personalizado
+        const deliveryIcon = L.icon({
+          iconUrl: 'assets/delivery-icon.png',  // Ruta a tu icono de carrito
+          iconSize: [32, 32], // Tamaño del icono (ajustar según necesidad)
+          iconAnchor: [16, 32], // Punto de anclaje
+          popupAnchor: [0, -32], // Posición del popup
+          className: 'delivery-marker' // Clase CSS opcional
+        });
+
+        // Crear el marcador con estilos personalizados
+        this.markers[deliveryId] = L.marker(position, { 
+          icon: deliveryIcon,
+          zIndexOffset: 1000 // Para asegurar que estén sobre otros marcadores
+        })
+        .addTo(this.map)
+        .bindPopup(`
+          <div class="delivery-popup">
+            <strong>${location.username || 'Repartidor'}</strong>
+            <div>ID: ${deliveryId}</div>
+            <div>Estado: ${location.state || 'Disponible'}</div>
+          </div>
+        `, {
+          className: 'delivery-popup-style', // Clase CSS para el popup
+          maxWidth: 250,
+          minWidth: 100
+        });
+        
+        // Opcional: Abrir popup automáticamente
+        // this.markers[deliveryId].openPopup();
       }
     });
   }

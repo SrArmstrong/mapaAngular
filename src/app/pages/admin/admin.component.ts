@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
@@ -16,6 +16,7 @@ import { CommonModule } from '@angular/common';
 import { TagModule } from 'primeng/tag';
 import { FormsModule } from '@angular/forms';
 import { io, Socket } from 'socket.io-client';
+import { LocationService } from '../../services/location.service';
 import { DeliveryService } from '../../services/delivery.service';
 import { PackagesService } from '../../services/package.service';
 import { MapComponent } from '../mapa/mapa.component';
@@ -31,6 +32,8 @@ interface Delivery {
   id: number;
   username: string;
   state: string;
+  lat: number | null;
+  lng: number | null;
 }
 
 @Component({
@@ -63,7 +66,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   selectedDelivery: Delivery | null = null;
   displayAddPackageDialog = false;
   displayAssignDialog = false;
-  repartidoresUbicaciones: { [key: number]: { lat: number; lng: number } } = {};
+  repartidoresUbicaciones: { [key: number]: { lat: number; lng: number; socketId?: string } } = {};
   
   newPackage = {
     direccion: ''
@@ -76,7 +79,8 @@ export class AdminComponent implements OnInit, OnDestroy {
     private deliveryService: DeliveryService,
     private packagesService: PackagesService,
     private router: Router,
-    private messageService: MessageService
+    private messageService: MessageService,
+    private locationService: LocationService
   ) {}
 
   ngOnInit(): void {
@@ -84,6 +88,9 @@ export class AdminComponent implements OnInit, OnDestroy {
     this.loadUnassignedPackages();
     this.initSocket();
     this.startAutoRefresh();
+    this.locationService.currentLocations.subscribe(locations => {
+      this.repartidoresUbicaciones = locations;
+    });
   }
 
   ngOnDestroy(): void {
@@ -94,6 +101,8 @@ export class AdminComponent implements OnInit, OnDestroy {
       clearInterval(this.refreshInterval);
     }
   }
+
+  private lastUpdateTimes: { [key: number]: number } = {};
 
   private startAutoRefresh(): void {
     this.refreshInterval = setInterval(() => {
@@ -110,27 +119,81 @@ export class AdminComponent implements OnInit, OnDestroy {
       reconnectionDelay: 1000
     });
 
-    
-    // Escuchar actualizaciones de ubicación
-    this.socket.on('ubicacion_repartidor', (data: { deliveryId: number, ubicacion: { lat: number; lng: number } }) => {
-      this.repartidoresUbicaciones[data.deliveryId] = data.ubicacion;
-      console.log('Ubicación actualizada:', data);
+    // Unirse a la sala admin
+    this.socket.emit('join-admin');
+
+    // Escuchar eventos de actualización
+    this.socket.on('paquete_actualizado', () => {
+      this.loadUnassignedPackages();
     });
 
-    // Solicitar ubicaciones actuales al conectarse
+    this.socket.on('repartidor_actualizado', () => {
+      this.loadDeliveries();
+    });
+
+    // Unirse a la sala admin
+    this.socket.emit('join-admin');
+
+    // Recibir ubicación en tiempo real
+    this.socket.on('ubicacion_repartidor', (data: { 
+      deliveryId: number, 
+      ubicacion: { latitud: number; longitud: number }, 
+      timestamp: string 
+    }) => {
+      const now = Date.now();
+      const lastUpdate = this.lastUpdateTimes[data.deliveryId] || 0;
+
+      if (now - lastUpdate > 2000) {
+        this.repartidoresUbicaciones[data.deliveryId] = {
+          lat: Number(data.ubicacion.latitud),
+          lng: Number(data.ubicacion.longitud)
+        };
+        this.repartidoresUbicaciones = { ...this.repartidoresUbicaciones }; // Forzar detección de cambios
+        this.lastUpdateTimes[data.deliveryId] = now;
+
+        console.log('📍 Ubicación actualizada:', this.repartidoresUbicaciones);
+      }
+    });
+
+    // Pedir ubicaciones iniciales
     this.socket.emit('obtener_ubicaciones');
 
-    // Recibir ubicaciones actuales
-    this.socket.on('ubicaciones_actuales', (ubicaciones: { [key: number]: { lat: number; lng: number } }) => {
-      this.repartidoresUbicaciones = ubicaciones;
-      console.log('Ubicaciones actuales recibidas:', ubicaciones);
+    // Recibir ubicaciones iniciales
+    this.socket.on('ubicaciones_actuales', (ubicaciones: { 
+      [key: number]: { latitud?: number; longitud?: number; lat?: string; lng?: string } 
+    }) => {
+      const ubicacionesConvertidas = Object.entries(ubicaciones).reduce((acc, [id, ub]) => {
+        acc[Number(id)] = {
+          lat: Number(ub.latitud ?? ub.lat),
+          lng: Number(ub.longitud ?? ub.lng)
+        };
+        return acc;
+      }, {} as { [key: number]: { lat: number; lng: number } });
+
+      this.repartidoresUbicaciones = { ...ubicacionesConvertidas };
+      console.log('📍 Ubicaciones iniciales procesadas:', this.repartidoresUbicaciones);
     });
   }
+
 
   loadDeliveries(): void {
     this.deliveryService.getDeliveries().subscribe({
       next: (response: any) => {
         this.deliverys = response.usuarios || [];
+        
+        // Actualizar ubicaciones de repartidores para el mapa
+        const ubicaciones: { [key: number]: { lat: number; lng: number } } = {};
+        
+        this.deliverys.forEach(delivery => {
+          if (delivery.lat && delivery.lng) {
+            ubicaciones[delivery.id] = {
+              lat: delivery.lat,
+              lng: delivery.lng
+            };
+          }
+        });
+        
+        this.locationService.updateLocations(ubicaciones);
       },
       error: (err) => {
         console.error('Error al cargar repartidores:', err);

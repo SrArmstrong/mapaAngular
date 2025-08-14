@@ -36,7 +36,7 @@
 .boton-añadir {
   background-color: #28a745;
   border: none;
-  color: white;
+  
   transition: all 0.3s ease;
   padding: 12px 24px;
   border-radius: 4px;
@@ -62,7 +62,7 @@
 .tabla-centrada {
   max-width: 900px;
   width: 100%;
-  background: white;
+  
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   overflow: hidden;
@@ -212,4 +212,147 @@
 .p-progress-spinner {
     margin: 0 auto;
     display: block;
+}
+
+/* Estilos para el card del toggle button */
+.minimal-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+  margin: 2rem 0;
+}
+
+.minimal-card .p-card-header {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  text-align: center;
+  padding: 1rem;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.minimal-card .p-card-content {
+  padding: 2rem;
+}
+
+/* Indicador de estado */
+.status-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  margin-bottom: 1.5rem;
+}
+
+.status-indicator .ml-2 {
+  margin-left: 0.5rem;
+}
+
+.status-indicator .font-semibold {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.status-indicator .text-green-500 {
+  color: #28a745;
+}
+
+.status-indicator .text-red-500 {
+  color: #dc3545;
+}
+
+/* Toggle button personalizado */
+.minimal-toggle {
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2) !important;
+}
+
+.minimal-toggle:hover {
+  background-color: #c82333 !important;
+  border-color: #bd2130 !important;
+  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3) !important;
+}
+
+/* Estado ACTIVO (highlight) - Verde */
+.minimal-toggle.p-highlight {
+  background-color: #28a745 !important;
+  border-color: #28a745 !important;
+}
+
+.minimal-toggle.p-highlight:hover {
+  background-color: #218838 !important;
+  border-color: #1e7e34 !important;
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3) !important;
+}
+
+/* Focus states */
+.minimal-toggle:focus {
+  outline: none !important;
+}
+
+.minimal-toggle.p-highlight:focus {
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4) !important;
+}
+
+.minimal-toggle:not(.p-highlight):focus {
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4) !important;
+}
+
+/* Espaciado responsive */
+.mb-3 {
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+  .minimal-card .p-card-content {
+    padding: 1.5rem;
+  }
+  
+  .status-indicator {
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .minimal-toggle {
+    width: 100% !important;
+    max-width: 200px;
+  }
+}
+.p-toggleButton .minimal-toggle.p-highlight {
+  background-color: #28a745 !important;
+  border-color: #28a745 !important;
+}
+
+/* Estilo base del botón */
+.p-toggleButton {
+    transition: background-color 0.2s;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.p-toggleButton:focus {
+    outline: none;
+    box-shadow: none !important;
+}
+.p-toggleButton:hover {
+    opacity: 0.9;
+}
+
+/* Estilo cuando está activo (verde) */
+.p-toggleButton.p-highlight {
+    background: #28a745; /* Verde cuando está activo */
+}
+
+/* Elimina sombras y efectos hover para simplificar */
+.p-toggleButton:hover, 
+.p-toggleButton.p-highlight:hover {
+    opacity: 0.9;
+    box-shadow: none !important;
 }

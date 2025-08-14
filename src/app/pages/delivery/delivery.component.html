@@ -2,7 +2,7 @@
 
 <div class="grid">
     <div class="botones-container">
-        <button pButton type="button" label="Ir al Login" icon="pi pi-user-shield" class="boton-inicio" (click)="IrInicio()"></button>
+        <button pButton type="button" label="Ir al Login" icon="pi pi-sign-out" class="p-button-danger" (click)="IrInicio()"></button>
     </div>
 
     <div class="ubicacion-actual">
@@ -16,6 +16,22 @@
         </p>
     </div>
 
+    <div class="p-d-flex p-jc-center p-mb-4">
+        <p-card header="Estado del Repartidor">
+            <div class="p-d-flex p-jc-center p-mb-4">
+                <p-toggleButton 
+                    [(ngModel)]="deliveryState"
+                    (onChange)="onStateChange($event)"
+                    [style]="{
+                        'width': '100px',
+                        'height': '30px',
+                        'background': deliveryState ? '#4CAF50' : '#F44336',
+                        'border': 'none'
+                    }">
+                </p-toggleButton>
+            </div>
+        </p-card>
+    </div>
 
     <!-- Mapa (columna de 8 en pantallas grandes) -->
     <div class="col-12 lg:col-8">

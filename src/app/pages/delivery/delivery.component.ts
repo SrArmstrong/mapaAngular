@@ -13,6 +13,10 @@ import { PanelModule } from 'primeng/panel';
 import { CommonModule } from '@angular/common';
 import { MapComponent } from '../mapa/mapa.component';
 import { io, Socket } from 'socket.io-client';
+import { ToggleButtonModule } from 'primeng/togglebutton';
+import { FormsModule } from '@angular/forms';
+import { DeliveryService } from '../../services/delivery.service';
+import { LocationService } from '../../services/location.service';
 import { PackagesService } from '../../services/package.service';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 
@@ -38,7 +42,9 @@ interface Package {
     RippleModule,
     PanelModule,
     MapComponent,
-    ProgressSpinnerModule
+    FormsModule,
+    ProgressSpinnerModule,
+    ToggleButtonModule
   ],
   providers: [MessageService],
   templateUrl: './delivery.component.html',
@@ -47,6 +53,7 @@ interface Package {
 export class DeliveryComponent implements OnInit, OnDestroy {
   paquetes: Package[] = [];
   loading = true;
+  deliveryState: boolean = false;
   updatingStatus: { [key: number]: boolean } = {};
   ubicacionActual: { lat: number; lng: number } | null = null;
   deliveryId: number | null = null;
@@ -58,9 +65,14 @@ export class DeliveryComponent implements OnInit, OnDestroy {
     private router: Router,
     private messageService: MessageService,
     private packagesService: PackagesService,
+    private locationService: LocationService,
+    private deliveryService: DeliveryService
   ) {}
 
   ngOnInit(): void {
+
+    this.checkInitialState();
+
     const storedUserId = localStorage.getItem('userId');
     if (storedUserId) {
       this.deliveryId = Number(storedUserId);
@@ -85,6 +97,58 @@ export class DeliveryComponent implements OnInit, OnDestroy {
     this.startGeolocationTracking();
   }
 
+  private checkInitialState(): void {
+      if (!this.deliveryId) return;
+
+      // Primero verifica si hay estado guardado en localStorage
+      const savedState = localStorage.getItem('deliveryState');
+      if (savedState) {
+          this.deliveryState = savedState === 'Activo';
+      }
+
+      // Luego actualiza con el estado del servidor
+      this.deliveryService.getDeliveryById(this.deliveryId).subscribe({
+          next: (response) => {
+              this.deliveryState = response.state === 'Activo';
+              localStorage.setItem('deliveryState', response.state);
+          },
+          error: (err) => {
+              console.error('Error al obtener estado:', err);
+              if (!savedState) {
+                  this.deliveryState = false;
+              }
+          }
+      });
+  }
+
+  onStateChange(event: any): void {
+      if (this.deliveryId === null) return;
+      
+      const newState = event.checked ? 'Activo' : 'Inactivo'; // Ajusta estos estados según tu backend
+      
+      this.deliveryService.updateDeliveryState(this.deliveryId, newState).subscribe({
+          next: () => {
+              localStorage.setItem('deliveryState', newState);
+              this.messageService.add({
+                  severity: 'success',
+                  summary: 'Éxito',
+                  detail: `Estado actualizado a ${newState === 'Activo' ? 'Disponible' : 'No disponible'}`,
+                  life: 3000
+              });
+          },
+          error: (err) => {
+              console.error('Error al actualizar estado:', err);
+              this.deliveryState = !event.checked; // Revertir el cambio si hay error
+              this.messageService.add({
+                  severity: 'error',
+                  summary: 'Error',
+                  detail: 'No se pudo actualizar el estado',
+                  life: 3000
+              });
+          }
+      });
+  }
+
   private startGeolocationTracking(): void {
     if (navigator.geolocation) {
       this.geoWatchId = navigator.geolocation.watchPosition(
@@ -97,6 +161,10 @@ export class DeliveryComponent implements OnInit, OnDestroy {
           console.log('Nueva ubicación capturada:', this.ubicacionActual);
 
           if (this.deliveryId) {
+            this.locationService.updateLocation(
+              this.deliveryId, 
+              this.ubicacionActual
+            );
             const payload = { deliveryId: this.deliveryId, ubicacion: this.ubicacionActual };
             console.log('Emitir ubicación:', payload);
             this.socket.emit('ubicacion_repartidor', payload);

@@ -10,7 +10,15 @@ export class DeliveryService {
 
     constructor(private http: HttpClient) {}
 
+    getDeliveryById(deliveryId: number): Observable<any> {
+        return this.http.get<any>(`${this.apiUrl}/delivery/${deliveryId}`);
+    }
+
     getDeliveries(): Observable<any> {
         return this.http.get<any>(`${this.apiUrl}/delivery`);
+    }
+
+    updateDeliveryState(deliveryId: number, state: string): Observable<any> {
+        return this.http.put<any>(`${this.apiUrl}/updateDeliveryState/${deliveryId}`, { state });
     }
 }
