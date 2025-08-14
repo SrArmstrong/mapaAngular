@@ -16,8 +16,9 @@ export class SocketService {
   */
 
   constructor() {
-    this.socket = io('http://72.60.31.237:3000', {
-      withCredentials: true
+    this.socket = io('https://72.60.31.237', {
+      withCredentials: true,
+      path: '/proyecto1/api/socket.io'
     });
   }
 

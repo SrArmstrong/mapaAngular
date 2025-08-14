@@ -83,7 +83,9 @@ export class DeliveryComponent implements OnInit, OnDestroy {
     
     this.loadPackages();
 
-    this.socket = io('http://localhost:3000', {
+    this.socket = io('https://72.60.31.237', {
+      //this.socket = io('http://localhost:3000', {
+      path: '/proyecto1/api/socket.io',
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
       reconnectionDelay: 1000

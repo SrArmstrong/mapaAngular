@@ -66,24 +66,15 @@ export class MapComponent implements AfterViewInit, OnChanges {
 
   private async loadMap(): Promise<void> {
     try {
-      const L = await import('leaflet');
+      const leaflet = await import('leaflet');
+      const L = leaflet.default ?? leaflet;
 
-      const iconRetinaUrl = 'assets/marker-icon-2x.png';
-      const iconUrl = 'assets/marker.png';
-      const shadowUrl = 'assets/marker-shadow.png';
-
-      const iconDefault = L.icon({
-        iconRetinaUrl,
-        iconUrl,
-        shadowUrl,
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        tooltipAnchor: [16, -28],
-        shadowSize: [41, 41]
+      // 🔹 Necesario para que Angular encuentre los iconos por defecto
+      (L.Icon.Default as any).mergeOptions({
+        iconRetinaUrl: 'assets/marker-icon-2x.png',
+        iconUrl: 'assets/marker.png',
+        shadowUrl: 'assets/marker-shadow.png'
       });
-
-      L.Marker.prototype.options.icon = iconDefault;
 
       const mapContainer = document.getElementById('map');
       if (!mapContainer) {
@@ -103,7 +94,6 @@ export class MapComponent implements AfterViewInit, OnChanges {
         maxZoom: 18
       }).addTo(this.map);
 
-      // Crear marcador inicial
       this.updateCurrentMarker();
       this.updateDeliveryMarkers();
 
@@ -124,6 +114,7 @@ export class MapComponent implements AfterViewInit, OnChanges {
       console.error(error);
     }
   }
+
 
   private updateCurrentMarker(): void {
     if (!this.map) return;
