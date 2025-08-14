@@ -1,5 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { isPlatformBrowser } from '@angular/common';
 import { Observable } from 'rxjs';
 
 interface Package {
@@ -21,12 +22,18 @@ interface SinglePackageResponse {
 export class PackagesService {
   private apiUrl = 'http://localhost:3000';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, @Inject(PLATFORM_ID) private platformId: Object) {}
 
   // Obtener paquetes según el rol del usuario
   getPackages(): Observable<PackageResponse> {
-    const userId = localStorage.getItem('userId');
-    const userRole = localStorage.getItem('userRole');
+    let userId: string | null = null;
+    let userRole: string | null = null;
+    
+    if (isPlatformBrowser(this.platformId)) {
+      // Solo accede a localStorage en el navegador
+      userId = localStorage.getItem('userId');
+      userRole = localStorage.getItem('userRole');
+    }
     
     // Si es delivery, solo traer sus paquetes asignados
     if (userRole === 'delivery' && userId) {
