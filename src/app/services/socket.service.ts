@@ -7,20 +7,21 @@ import { io, Socket } from 'socket.io-client';
 export class SocketService {
   private socket: Socket;
 
-  /*
+/*
   constructor() {
     this.socket = io('http://localhost:3000', {
       withCredentials: true
     });
   }
-  */
-
+*/
+  
   constructor() {
     this.socket = io('https://72.60.31.237', {
       withCredentials: true,
       path: '/proyecto1/api/socket.io'
     });
   }
+  
 
   // Unirse como administrador
   joinAsAdmin(): void {

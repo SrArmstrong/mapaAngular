@@ -25,6 +25,7 @@ interface Package {
   direccion: string;
   estatus: string;
   deliveryid: number | null;
+  estado?: string;
 }
 
 @Component({
@@ -60,6 +61,7 @@ export class DeliveryComponent implements OnInit, OnDestroy {
 
   private socket!: Socket;
   private geoWatchId?: number;
+  private lastSentAt = 0;
 
   constructor(
     private router: Router,
@@ -71,8 +73,6 @@ export class DeliveryComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
 
-    this.checkInitialState();
-
     const storedUserId = localStorage.getItem('userId');
     if (storedUserId) {
       this.deliveryId = Number(storedUserId);
@@ -80,47 +80,60 @@ export class DeliveryComponent implements OnInit, OnDestroy {
       console.warn('No se encontró userId en localStorage');
     }
 
-    
     this.loadPackages();
 
     this.socket = io('https://72.60.31.237', {
-      //this.socket = io('http://localhost:3000', {
+    //this.socket = io('http://localhost:3000', {
       path: '/proyecto1/api/socket.io',
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
       reconnectionDelay: 1000
     });
 
-    this.socket.on('connect', () => {
-      console.log('Conectado a Socket.IO:', this.socket.id);
-      this.startGeolocationTracking(); 
+    this.socket.emit('join-delivery', this.deliveryId); 
+
+    this.socket.on('nuevo_paquete_asignado', (paquete: Package) => {
+      console.log('Nuevo paquete asignado:', paquete);
+      this.paquetes.push({
+        ...paquete,
+        estado: this.mapStatus(paquete.estatus)
+      });
     });
 
-    this.startGeolocationTracking();
-  }
-
-  private checkInitialState(): void {
-      if (!this.deliveryId) return;
-
-      // Primero verifica si hay estado guardado en localStorage
-      const savedState = localStorage.getItem('deliveryState');
-      if (savedState) {
-          this.deliveryState = savedState === 'Activo';
+    this.socket.on('paquete_actualizado', (data: any) => {
+      console.log('Paquete actualizado:', data);
+      const index = this.paquetes.findIndex(p => p.id === data.packageId);
+      if (index !== -1) {
+        this.paquetes[index].estatus = data.estatus;
+        this.paquetes[index].estado = this.mapStatus(data.estatus);
       }
+    });
 
-      // Luego actualiza con el estado del servidor
-      this.deliveryService.getDeliveryById(this.deliveryId).subscribe({
-          next: (response) => {
-              this.deliveryState = response.state === 'Activo';
-              localStorage.setItem('deliveryState', response.state);
-          },
-          error: (err) => {
-              console.error('Error al obtener estado:', err);
-              if (!savedState) {
-                  this.deliveryState = false;
-              }
-          }
-      });
+    this.socket.on('connect', () => {
+      console.log('Conectado a Socket.IO:', this.socket.id);
+      this.updateDeliveryState('Activo'); // ✅ Se pone en Activo al conectarse
+      this.startGeolocationTracking();
+    });
+
+    this.socket.on('disconnect', () => {
+      console.log('Socket desconectado');
+      this.updateDeliveryState('Inactivo'); // ✅ También por seguridad al desconectarse
+    });
+  }
+  
+
+  private updateDeliveryState(newState: 'Activo' | 'Inactivo'): void {
+    if (!this.deliveryId) return;
+    this.deliveryService.updateDeliveryState(this.deliveryId, newState).subscribe({
+      next: () => {
+        localStorage.setItem('deliveryState', newState);
+        this.deliveryState = newState === 'Activo';
+        console.log(`Estado cambiado a ${newState}`);
+      },
+      error: (err) => {
+        console.error(`Error al cambiar a ${newState}:`, err);
+      }
+    });
   }
 
   onStateChange(event: any): void {
@@ -192,6 +205,9 @@ export class DeliveryComponent implements OnInit, OnDestroy {
     if (this.geoWatchId !== undefined) {
       navigator.geolocation.clearWatch(this.geoWatchId);
     }
+    if (this.deliveryId) {
+      this.updateDeliveryState('Inactivo');
+    }
     if (this.socket) {
       this.socket.disconnect();
     }
@@ -238,7 +254,7 @@ export class DeliveryComponent implements OnInit, OnDestroy {
     if (!paquete.id) return;
     
     this.updatingStatus[paquete.id] = true;
-    this.packagesService.updatePackageStatus(paquete.id, 'delivered').subscribe({
+    this.packagesService.updatePackageStatus(paquete.id, 'delivered', this.deliveryId!).subscribe({
       next: () => {
         this.messageService.add({
           severity: 'success',
@@ -267,7 +283,7 @@ export class DeliveryComponent implements OnInit, OnDestroy {
     if (!paquete.id) return;
     
     this.updatingStatus[paquete.id] = true;
-    this.packagesService.updatePackageStatus(paquete.id, 'cancelled').subscribe({
+    this.packagesService.updatePackageStatus(paquete.id, 'cancelled', this.deliveryId!).subscribe({
       next: () => {
         this.messageService.add({
           severity: 'info',
@@ -297,6 +313,10 @@ export class DeliveryComponent implements OnInit, OnDestroy {
     if (index !== -1) {
       this.paquetes[index].estatus = status;
       //this.paquetes[index].estado = this.mapStatus(status);
+      this.paquetes = this.paquetes.map(p =>
+        p.id === packageId ? { ...p, estatus: status, estado: this.mapStatus(status) } : p
+      );
+
     }
   }
 

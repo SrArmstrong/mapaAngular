@@ -108,7 +108,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     this.refreshInterval = setInterval(() => {
       this.loadDeliveries();
       this.loadUnassignedPackages();
-    }, 30000); // Actualiza cada 30 segundos
+    }, 10000); // Actualiza cada 30 segundos
   }
 
 
@@ -132,6 +132,19 @@ export class AdminComponent implements OnInit, OnDestroy {
     this.socket.on('repartidor_actualizado', () => {
       this.loadDeliveries();
     });
+
+    this.socket.on('nuevo_paquete', (paquete: Package) => {
+      this.unassignedPackages.push(paquete);
+      this.unassignedPackages = [...this.unassignedPackages]; // Forzar cambio
+      console.log('📦 Nuevo paquete recibido:', paquete);
+    });
+
+    this.socket.on('paquete_asignado', (paquete: Package) => {
+      // Filtramos el paquete asignado de la lista de no asignados
+      this.unassignedPackages = this.unassignedPackages.filter(p => p.id !== paquete.id);
+      console.log('📦 Paquete asignado y removido:', paquete);
+    });
+
 
     // Unirse a la sala admin
     this.socket.emit('join-admin');
@@ -241,6 +254,12 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   showAssignDialog(delivery: Delivery) {
+    
+    if (delivery.state !== 'Activo') {
+      this.showWarn('Solo se pueden asignar paquetes a repartidores Activos');
+      return;
+    }
+    
     this.selectedDelivery = delivery;
     this.loadUnassignedPackages();
     this.displayAssignDialog = true;
@@ -248,6 +267,11 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   assignPackage(pkg: Package) {
     if (!this.selectedDelivery || !pkg.id) return;
+
+    if (this.selectedDelivery.state !== 'Activo') {
+        this.showWarn('No se puede asignar a un repartidor inactivo');
+        return;
+    }
 
     this.packagesService.assignPackage(pkg.id, this.selectedDelivery.id).subscribe({
       next: () => {

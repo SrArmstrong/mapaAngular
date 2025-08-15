@@ -80,7 +80,9 @@
                         <td><p-tag [value]="delivery.state" [severity]="getDeliveryStatusSeverity(delivery.state)"></p-tag></td>
                         <td>
                             <button pButton type="button" icon="pi pi-box" label="Asignar" 
-                                    (click)="showAssignDialog(delivery)" class="p-button-sm"></button>
+                                    (click)="showAssignDialog(delivery)" class="p-button-sm"
+                                    [disabled]="delivery.state !== 'Activo'"
+                                    pTooltip="Solo se pueden asignar paquetes a repartidores Activos"></button>
                         </td>
                     </tr>
                 </ng-template>

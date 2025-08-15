@@ -60,10 +60,10 @@ export class PackagesService {
     return this.http.get<PackageResponse>(`${this.apiUrl}/packages/delivery/${deliveryId}`);
   }
 
-  updatePackageStatus(packageId: number, newStatus: string): Observable<any> {
+  updatePackageStatus(packageId: number, newStatus: string, deliveryId: number): Observable<any> {
     return this.http.put<any>(
         `${this.apiUrl}/updatePackageStatus/${packageId}`,
-        { estatus: newStatus }
+        { estatus: newStatus, deliveryId }
     );
     }
 }

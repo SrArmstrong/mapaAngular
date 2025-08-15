@@ -16,23 +16,6 @@
         </p>
     </div>
 
-    <div class="p-d-flex p-jc-center p-mb-4">
-        <p-card header="Estado del Repartidor">
-            <div class="p-d-flex p-jc-center p-mb-4">
-                <p-toggleButton 
-                    [(ngModel)]="deliveryState"
-                    (onChange)="onStateChange($event)"
-                    [style]="{
-                        'width': '100px',
-                        'height': '30px',
-                        'background': deliveryState ? '#4CAF50' : '#F44336',
-                        'border': 'none'
-                    }">
-                </p-toggleButton>
-            </div>
-        </p-card>
-    </div>
-
     <!-- Mapa (columna de 8 en pantallas grandes) -->
     <div class="col-12 lg:col-8">
         <p-card header="Mapa de Repartidores" styleClass="h-full">
@@ -61,7 +44,7 @@
                             <button pButton 
                                     icon="pi pi-check" 
                                     class="p-button-success"
-                                    [disabled]="updatingStatus[paquete.id]"
+                                    [disabled]="updatingStatus[paquete.id] || !deliveryState"
                                     (click)="entregarPaquete(paquete)">
                                     <span *ngIf="updatingStatus[paquete.id]" class="pi pi-spinner pi-spin"></span>
                                     <span *ngIf="!updatingStatus[paquete.id]">Entregar</span>
@@ -69,7 +52,7 @@
                             <button pButton 
                                     icon="pi pi-times"
                                     class="p-button-danger ml-2"
-                                    [disabled]="updatingStatus[paquete.id]"
+                                    [disabled]="updatingStatus[paquete.id] || !deliveryState"
                                     (click)="cancelarPaquete(paquete)">
                                     <span *ngIf="updatingStatus[paquete.id]" class="pi pi-spinner pi-spin"></span>
                                     <span *ngIf="!updatingStatus[paquete.id]">Cancelar</span>
